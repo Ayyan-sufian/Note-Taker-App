@@ -15,9 +15,9 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -50,18 +50,21 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
                 _isWrong
                     ? SizedBox()
-                    : Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset("assets/img/search_img.png"),
-                            Text(
-                              "File not found. Try searching again.",
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset("assets/img/search_img.png"),
+                          SizedBox(height: 10,),
+                          Text(
+                            "File not found. Try searching again.",
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
+                SizedBox(
+                  height: 10,
+                ),
               ],
             ),
           ),

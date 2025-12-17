@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:note_taker_app/screen/notes_screen.dart';
 import 'package:note_taker_app/screen/search_screen.dart';
-import 'package:note_taker_app/themes/app_theme.dart';
+import 'package:note_taker_app/screen/themes/app_theme.dart';
+import 'package:note_taker_app/view_model/notes_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,52 +42,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  List Testing = [
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Food recipe',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Phone NO.',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title':
-          'Hello world!hwefsdhfosndfcshfshfsfhifnshfofnosinfosnfoishfonsufsod',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hellodnlsnsfnsjfdsjfsjdfinsh world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-    {
-      'title': 'Hello world!',
-      'subtitle': 'Hi everyone! Welcome to My notes taker app.',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final notesProvider = context.watch<NotesProvider>();
+    final  notes = notesProvider.notes;
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 80,
@@ -126,24 +87,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _isScreenEmpty
+      body: notes.isEmpty
           ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset("assets/img/empty_screen.png"),
-                  Text(
-                    "Create your first note !",
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset("assets/img/empty_screen.png"),
+                    Text(
+                      "Create your first note !",
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
               ),
             )
           : ListView.builder(
-              itemCount: Testing.length,
+              itemCount: notes.length,
               itemBuilder: (context, index) {
+                final note = notes[index];
                 return Dismissible(
-                  key: ValueKey(Testing[index]),
+                  key: ValueKey(note.id),
                   direction: DismissDirection.endToStart,
                   background: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -157,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   onDismissed: (direction) {
                     setState(() {
-                      Testing.removeAt(index);
+                     notesProvider.deleteNotes(note.id);
                     });
                   },
                   confirmDismiss: (direction) async {
@@ -192,25 +156,30 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 13,
                       horizontal: 25,
                     ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 45,
-                        horizontal: 17,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppTheme
-                            .colorList[index % AppTheme.colorList.length],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        Testing[index]["title"],
-                        style: GoogleFonts.nunito(
-                          color: Colors.black,
-                          fontSize: 25,
-                          fontWeight: FontWeight.w400,
+                    child: GestureDetector(
+                      onTap: (){
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => NotesScreen(noteId: note.id),));
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 45,
+                          horizontal: 17,
                         ),
-                        textAlign: TextAlign.center,
+                        decoration: BoxDecoration(
+                          color: AppTheme
+                              .colorList[index % AppTheme.colorList.length],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          note.title,
+                          style: GoogleFonts.nunito(
+                            color: Colors.black,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ),

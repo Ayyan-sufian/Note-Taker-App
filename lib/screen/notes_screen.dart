@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:google_fonts/google_fonts.dart';
-import 'package:note_taker_app/themes/app_theme.dart';
+import 'package:local_auth/local_auth.dart';
+import 'package:note_taker_app/screen/themes/app_theme.dart';
+import 'package:note_taker_app/view_model/notes_provider.dart';
+import 'package:provider/provider.dart';
 
 class NotesScreen extends StatefulWidget {
-  const NotesScreen({super.key});
+  final String? noteId; // this is use to get note id
+  const NotesScreen({super.key, this.noteId});
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
@@ -12,6 +15,66 @@ class NotesScreen extends StatefulWidget {
 
 class _NotesScreenState extends State<NotesScreen> {
   TextEditingController titleController = TextEditingController();
+  TextEditingController contentController = TextEditingController();
+
+  final LocalAuthentication auth = LocalAuthentication(); // We can use local auth from this line for security
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies(); // Always call super to ensure the parent class can handle dependency changes properly
+    if (widget.noteId != null) {
+      final note = context.read<NotesProvider>().getNotesById(widget.noteId!);
+        if(note != null){
+          titleController.text = note.title; // this is use for editing title
+          contentController.text = note.content; // this is use for editing content
+        }
+    }
+  }
+
+  /// This is use to ask to add pin and fingerprint
+  Future<void> authenticate() async {
+    try {
+      final bool isSupported = await auth.isDeviceSupported();
+
+      if (!isSupported) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Authentication not supported on this device")),
+        );
+        return;
+      }
+
+      final bool isAuthenticated = await auth.authenticate(
+        localizedReason: 'Authenticate to view this note', // show when the auth dialog box open
+          biometricOnly: false, // Form this we can use pin, face lock and fingerprint
+      );
+
+      if (isAuthenticated) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Note is now hide.")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Authentication failed")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Auth error: $e");
+    }
+  }
+
+  /// save the notes
+  void saveNotes() {
+    final provider = context.read<NotesProvider>();
+    if (widget.noteId == null) {
+      provider.addNotes(titleController.text, contentController.text); // It is use to create notes
+    }  else{
+      provider.updateNote(widget.noteId!, titleController.text, contentController.text); // It is use to update notes
+    }
+    Navigator.pop(context);
+  }
+
+
+  /// It's use to show dialog box for save notes
   void showSaveChangesDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -67,7 +130,7 @@ class _NotesScreenState extends State<NotesScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: () {
-                          Navigator.pop(context);
+                          saveNotes();
                         },
                         child: const Text('Save'),
                       ),
@@ -82,6 +145,7 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
+  /// It's use to show dialog box
   void showCloseDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -179,7 +243,9 @@ class _NotesScreenState extends State<NotesScreen> {
 
         actions: [
           IconButton(
-            onPressed: () {},
+            onPressed: () async {
+              await authenticate();
+            },
             icon: Container(
               height: 50,
               width: 50,
@@ -241,6 +307,7 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
             SizedBox(height: 8),
             TextField(
+              controller: contentController,
               decoration: InputDecoration(
                 hintText: "Type something...",
                 hintStyle: GoogleFonts.nunito(
