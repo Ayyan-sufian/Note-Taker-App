@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:note_taker_app/screen/splash_screen.dart';
 import 'package:note_taker_app/screen/themes/app_theme.dart';
 import 'package:note_taker_app/view_model/notes_provider.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+import 'models/notes_model.dart';
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+  Hive.registerAdapter(NotesModelAdapter()); // Make sure your adapter is registered
+  await Hive.openBox<NotesModel>("notesBox");
+
   runApp(ChangeNotifierProvider(create: (_) => NotesProvider(),child: const MyApp(),)); // From here we use provider in this app.
 }
 

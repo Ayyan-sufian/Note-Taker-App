@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:note_taker_app/screen/themes/app_theme.dart';
 import 'package:note_taker_app/view_model/notes_provider.dart';
 import 'package:provider/provider.dart';
 
+import '../models/notes_model.dart';
+
 class NotesScreen extends StatefulWidget {
   final String? noteId; // this is use to get note id
   const NotesScreen({super.key, this.noteId});
+
 
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  final Box<NotesModel> _notesBox = Hive.box<NotesModel>('notesBox');
+
+
   TextEditingController titleController = TextEditingController();
   TextEditingController contentController = TextEditingController();
 
@@ -115,6 +122,7 @@ class _NotesScreenState extends State<NotesScreen> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
+                          Navigator.pop(context);
                         },
                         child: const Text('Discard'),
                       ),
@@ -131,6 +139,7 @@ class _NotesScreenState extends State<NotesScreen> {
                         ),
                         onPressed: () {
                           saveNotes();
+                          Navigator.pop(context);
                         },
                         child: const Text('Save'),
                       ),
@@ -146,76 +155,84 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   /// It's use to show dialog box
-  void showCloseDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: AppTheme.secColor.withOpacity(0.5),
-      builder: (context) {
-        return Dialog(
-          backgroundColor: AppTheme.primaryColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.info_outline, color: Colors.grey, size: 40),
-                const SizedBox(height: 16),
-                const Text(
-                  'Are your sure you want discard your changes ?',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.errorColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Discard'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.successColor,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Keep'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  // void showCloseDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     barrierDismissible: true,
+  //     barrierColor: AppTheme.secColor.withValues(alpha: 0.5),
+  //     builder: (context) {
+  //       return Dialog(
+  //         backgroundColor: AppTheme.primaryColor,
+  //         shape: RoundedRectangleBorder(
+  //           borderRadius: BorderRadius.circular(20),
+  //         ),
+  //         child: Padding(
+  //           padding: const EdgeInsets.all(20),
+  //           child: Column(
+  //             mainAxisSize: MainAxisSize.min,
+  //             children: [
+  //               const Icon(Icons.info_outline, color: Colors.grey, size: 40),
+  //               const SizedBox(height: 16),
+  //               const Text(
+  //                 'Are your sure you want discard your changes ?',
+  //                 style: TextStyle(
+  //                   color: Colors.white,
+  //                   fontSize: 20,
+  //                   fontWeight: FontWeight.w500,
+  //                 ),
+  //                 textAlign: TextAlign.center,
+  //               ),
+  //               const SizedBox(height: 24),
+  //               Row(
+  //                 children: [
+  //                   Expanded(
+  //                     child: ElevatedButton(
+  //                       style: ElevatedButton.styleFrom(
+  //                         backgroundColor: AppTheme.errorColor,
+  //                         shape: RoundedRectangleBorder(
+  //                           borderRadius: BorderRadius.circular(12),
+  //                         ),
+  //                         padding: const EdgeInsets.symmetric(vertical: 14),
+  //                       ),
+  //                       onPressed: () {
+  //                         Navigator.pop(context);
+  //                         Navigator.pop(context);
+  //                       },
+  //                       child: const Text('Discard'),
+  //                     ),
+  //                   ),
+  //                   const SizedBox(width: 12),
+  //                   Expanded(
+  //                     child: ElevatedButton(
+  //                       style: ElevatedButton.styleFrom(
+  //                         backgroundColor: AppTheme.successColor,
+  //                         shape: RoundedRectangleBorder(
+  //                           borderRadius: BorderRadius.circular(12),
+  //                         ),
+  //                         padding: const EdgeInsets.symmetric(vertical: 14),
+  //                       ),
+  //                       onPressed: () {
+  //                         Navigator.pop(context);
+  //                       },
+  //                       child: const Text('Keep'),
+  //                     ),
+  //                   ),
+  //                 ],
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    titleController.dispose();
+    contentController.dispose();
+    super.dispose();
   }
 
   @override
@@ -227,7 +244,9 @@ class _NotesScreenState extends State<NotesScreen> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 12.0),
           child: IconButton(
-            onPressed: () => showCloseDialog(context),
+            onPressed: () {
+              showSaveChangesDialog(context);
+            },
             icon: Container(
               height: 50,
               width: 50,
