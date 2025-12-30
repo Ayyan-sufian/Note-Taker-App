@@ -1,47 +1,117 @@
-import 'dart:math';
-
-import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:note_taker_app/models/notes_model.dart';
 import 'package:uuid/uuid.dart';
 
-class NotesProvider extends ChangeNotifier{
+class NotesProvider extends ChangeNotifier {
   final Box<NotesModel> _notesBox = Hive.box<NotesModel>('notesBox');
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final Uuid _uuid = Uuid();
 
+  /// Get notes only for logged-in user
+  List<NotesModel> getNotesForUser(String userId) {
+    return _notesBox.values.where((note) => note.userId == userId).toList();
+  }
 
-  List<NotesModel> get notes => _notesBox.values.toList(); // Create a list of notes
+  /// Clear all notes locally (used on logout)
+  Future<void> clearNotes() async {
+    await _notesBox.clear();
+    notifyListeners();
+  }
 
+  /// Get single note by id
+  NotesModel? getNoteById(String id) {
+    return _notesBox.get(id);
+  }
 
+  /// Add a new note
+  Future<void> addNote({
+    required String title,
+    required String content,
+    required String userId,
+  }) async {
+    final String noteId = _uuid.v4();
 
-  /// We can add Notes into our notes list
-  void addNotes(String title, String content) {
     final note = NotesModel(
-      id: Random().nextInt(100000).toString(), // It generate  random value and assign unique id
+      id: noteId,
+      userId: userId,
       title: title.trim(),
       content: content.trim(),
     );
-    _notesBox.put(note.id, note);
+
+    // Save locally
+    await _notesBox.put(noteId, note);
+
+    // Save to Firestore
+    await _firestore.collection('notes').doc(noteId).set({
+      'noteId': noteId,
+      'userId': userId,
+      'title': note.title,
+      'content': note.content,
+      'createdAt': Timestamp.now(),
+    });
+
     notifyListeners();
   }
 
-  /// We can update Notes
-  void updateNote(String id, String title, String content) {
-    final note = _notesBox.get(id);
+  /// Update an existing note
+  Future<void> updateNote({
+    required String noteId,
+    required String title,
+    required String content,
+  }) async {
+    final note = _notesBox.get(noteId);
     if (note == null) return;
+
     note.title = title.trim();
     note.content = content.trim();
-    note.save();
+    await note.save();
+
+    await _firestore.collection('notes').doc(noteId).update({
+      'title': note.title,
+      'content': note.content,
+    });
+
     notifyListeners();
   }
 
-  /// We can delete the notes from here
-  void deleteNotes(String id) {
-    _notesBox.delete(id);
+  /// Delete a note
+  Future<void> deleteNote(String noteId) async {
+    await _notesBox.delete(noteId);
+    await _firestore.collection('notes').doc(noteId).delete();
+
     notifyListeners();
   }
 
-  /// This is use to view a note
-  NotesModel? getNotesById(String id) {
-   return _notesBox.get(id);
+  /// Fetch notes from Firestore for a specific user
+  Future<void> syncNotes(String userId) async {
+    final snapshot = await _firestore
+        .collection('notes')
+        .where('userId', isEqualTo: userId)
+        .get();
+
+    // Clear local notes for this user first
+    final userNotes = _notesBox.values
+        .where((note) => note.userId == userId)
+        .toList();
+    // This is use to remove old notes
+    for (var note in userNotes) {
+      _notesBox.delete(note.id);
+    }
+
+    // This loop is use for add new notes that are the notes of current user
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final note = NotesModel(
+        id: doc.id,
+        userId: data['userId'] ?? userId,
+        title: (data['title'] ?? '').toString(),
+        content: (data['content'] ?? '').toString(),
+      );
+      _notesBox.put(note.id, note);
+    }
+
+    notifyListeners();
   }
 }

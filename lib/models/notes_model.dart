@@ -5,11 +5,13 @@ part 'notes_model.g.dart';
 @HiveType(typeId: 0)
 class NotesModel extends HiveObject {
   @HiveField(0)
-  final String id;
+  final String userId;
   @HiveField(1)
-  String title;
+  final String id;
   @HiveField(2)
+  String title;
+  @HiveField(3)
   String content;
 
-  NotesModel({required this.id, required this.title, required this.content});
+  NotesModel({required this.userId, required this.id, required this.title, required this.content});
 }

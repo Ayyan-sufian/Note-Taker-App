@@ -1,21 +1,41 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:note_taker_app/models/user_model.dart';
+import 'package:note_taker_app/models/notes_model.dart';
 import 'package:note_taker_app/screen/splash_screen.dart';
 import 'package:note_taker_app/screen/themes/app_theme.dart';
+import 'package:note_taker_app/view_model/auth_provider.dart';
 import 'package:note_taker_app/view_model/notes_provider.dart';
 import 'package:provider/provider.dart';
 
-import 'models/notes_model.dart';
-
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Hive.initFlutter();
-  Hive.registerAdapter(NotesModelAdapter()); // Make sure your adapter is registered
-  await Hive.openBox<NotesModel>("notesBox");
+  // Initialize Firebase
+  await Firebase.initializeApp();
 
-  runApp(ChangeNotifierProvider(create: (_) => NotesProvider(),child: const MyApp(),)); // From here we use provider in this app.
+  // Initialize Hive
+  await Hive.initFlutter();
+
+  // Register Hive adapters
+  Hive.registerAdapter(UserModelAdapter());
+  Hive.registerAdapter(NotesModelAdapter());
+
+  // Open boxes
+  await Hive.openBox<UserModel>('userBox');
+  await Hive.openBox<NotesModel>('notesBox');
+  await Hive.openBox('sessionBox');
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NotesProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -24,8 +44,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Noted Taker App',
-      theme: AppTheme.darkTheme, // We create theme app
+      title: 'Note Taker App',
+      theme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
       home: SplashScreen(),
     );

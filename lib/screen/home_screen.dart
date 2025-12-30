@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
+import 'package:note_taker_app/screen/login_screen.dart';
 import 'package:note_taker_app/screen/notes_screen.dart';
 import 'package:note_taker_app/screen/search_screen.dart';
 import 'package:note_taker_app/screen/themes/app_theme.dart';
 import 'package:note_taker_app/view_model/notes_provider.dart';
 import 'package:provider/provider.dart';
+
+import '../models/user_model.dart';
+import '../view_model/auth_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isScreenEmpty = true;
 
   void infoBox() {
     showDialog(
@@ -22,19 +26,34 @@ class _HomeScreenState extends State<HomeScreen> {
       barrierColor: AppTheme.secColor.withOpacity(0.5),
       context: context,
       builder: (context) {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
         return Dialog(
           backgroundColor: AppTheme.primaryColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          child: SizedBox(
-            height: 100,
-            width: 100,
-            child: Center(
-              child: Text(
-                "Designed by- Ayan Sufian",
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Designed by- Ayan Sufian",
+                  style: Theme
+                      .of(context)
+                      .textTheme
+                      .bodyLarge,
+                ),
+                const SizedBox(height: 18),
+                ElevatedButton(
+                  onPressed: () {
+                    authProvider.logOut(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen(),));
+                  },
+                  child: const Text("Log out"),
+                )
+              ],
             ),
           ),
         );
@@ -45,8 +64,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notesProvider = context.watch<NotesProvider>();
-    final  notes = notesProvider.notes;
+    final authProvider = Provider.of<AuthProvider>(context, listen: true);
+    final notesProvider = Provider.of<NotesProvider>(context, listen: true);
+
+    // Only show notes for logged-in user
+    final userNotes = authProvider.currentUserId != null
+        ? notesProvider.getNotesForUser(authProvider.currentUserId!)
+        : [];
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: 80,
@@ -87,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: notes.isEmpty
+      body: userNotes.isEmpty
           ? Center(
               child: SingleChildScrollView(
                 child: Column(
@@ -103,9 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             )
           : ListView.builder(
-              itemCount: notes.length,
+              itemCount: userNotes.length,
               itemBuilder: (context, index) {
-                final note = notes[index];
+                final note = userNotes[index];
                 return Dismissible(
                   key: ValueKey(note.id),
                   direction: DismissDirection.endToStart,
@@ -119,26 +143,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 30,
                     ),
                   ),
-                  onDismissed: (direction) {
-                    setState(() {
-                     notesProvider.deleteNotes(note.id);
-                    });
-                  },
+
                   confirmDismiss: (direction) async {
-                    return await showDialog(
+                    final shouldDelete = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
                         title: const Text("Delete note?"),
-                        content: const Text(
-                          "This note will be permanently deleted.",
-                        ),
+                        content: const Text("This note will be permanently deleted."),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(context, false),
-                            child: const Text(
-                              "Cancel",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: const Text("Cancel",style: TextStyle(color: Colors.white),),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(context, true),
@@ -150,25 +165,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                     );
+
+                    if (shouldDelete == true) {
+                      notesProvider.deleteNote(note.id);
+                      return true;
+                    }
+
+                    return false;
                   },
+
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 13,
-                      horizontal: 25,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 25),
                     child: GestureDetector(
-                      onTap: (){
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => NotesScreen(noteId: note.id),));
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NotesScreen(noteId: note.id),
+                          ),
+                        );
                       },
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 45,
-                          horizontal: 17,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 45, horizontal: 17),
                         decoration: BoxDecoration(
-                          color: AppTheme
-                              .colorList[index % AppTheme.colorList.length],
+                          color: AppTheme.colorList[
+                          index % AppTheme.colorList.length],
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

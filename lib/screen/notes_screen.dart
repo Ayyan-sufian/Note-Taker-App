@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:note_taker_app/screen/themes/app_theme.dart';
+import 'package:note_taker_app/view_model/auth_provider.dart';
 import 'package:note_taker_app/view_model/notes_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +13,6 @@ class NotesScreen extends StatefulWidget {
   final String? noteId; // this is use to get note id
   const NotesScreen({super.key, this.noteId});
 
-
   @override
   State<NotesScreen> createState() => _NotesScreenState();
 }
@@ -20,21 +20,23 @@ class NotesScreen extends StatefulWidget {
 class _NotesScreenState extends State<NotesScreen> {
   final Box<NotesModel> _notesBox = Hive.box<NotesModel>('notesBox');
 
-
   TextEditingController titleController = TextEditingController();
   TextEditingController contentController = TextEditingController();
 
-  final LocalAuthentication auth = LocalAuthentication(); // We can use local auth from this line for security
+  final LocalAuthentication auth =
+      LocalAuthentication(); // We can use local auth from this line for security
 
   @override
   void didChangeDependencies() {
-    super.didChangeDependencies(); // Always call super to ensure the parent class can handle dependency changes properly
+    super
+        .didChangeDependencies(); // Always call super to ensure the parent class can handle dependency changes properly
     if (widget.noteId != null) {
-      final note = context.read<NotesProvider>().getNotesById(widget.noteId!);
-        if(note != null){
-          titleController.text = note.title; // this is use for editing title
-          contentController.text = note.content; // this is use for editing content
-        }
+      final note = context.read<NotesProvider>().getNoteById(widget.noteId!);
+      if (note != null) {
+        titleController.text = note.title; // this is use for editing title
+        contentController.text =
+            note.content; // this is use for editing content
+      }
     }
   }
 
@@ -45,24 +47,28 @@ class _NotesScreenState extends State<NotesScreen> {
 
       if (!isSupported) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Authentication not supported on this device")),
+          const SnackBar(
+            content: Text("Authentication not supported on this device"),
+          ),
         );
         return;
       }
 
       final bool isAuthenticated = await auth.authenticate(
-        localizedReason: 'Authenticate to view this note', // show when the auth dialog box open
-          biometricOnly: false, // Form this we can use pin, face lock and fingerprint
+        localizedReason: 'Authenticate to view this note',
+        // show when the auth dialog box open
+        biometricOnly:
+            false, // Form this we can use pin, face lock and fingerprint
       );
 
       if (isAuthenticated) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Note is now hide.")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Note is now hide.")));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Authentication failed")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Authentication failed")));
       }
     } catch (e) {
       debugPrint("Auth error: $e");
@@ -72,14 +78,22 @@ class _NotesScreenState extends State<NotesScreen> {
   /// save the notes
   void saveNotes() {
     final provider = context.read<NotesProvider>();
+    final authProvider = context.read<AuthProvider>();
     if (widget.noteId == null) {
-      provider.addNotes(titleController.text, contentController.text); // It is use to create notes
-    }  else{
-      provider.updateNote(widget.noteId!, titleController.text, contentController.text); // It is use to update notes
+      provider.addNote(
+        title: titleController.text,
+        content: contentController.text,
+        userId: authProvider.currentUserId!,
+      ); // It is use to create notes
+    } else {
+      provider.updateNote(
+        noteId: widget.noteId!,
+        title: titleController.text,
+        content: contentController.text,
+      ); // It is use to update notes
     }
     Navigator.pop(context);
   }
-
 
   /// It's use to show dialog box for save notes
   void showSaveChangesDialog(BuildContext context) {
