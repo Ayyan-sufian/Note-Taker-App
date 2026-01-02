@@ -55,10 +55,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     authProvider.isEmailExist(authProvider.emailController.text);
                     final success = authProvider.signUp();
-                    if (success) {
+                    if (await success) {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => const HomeScreen()),

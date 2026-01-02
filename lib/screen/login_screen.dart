@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:note_taker_app/screen/home_screen.dart';
 import 'package:note_taker_app/screen/sign_up_screen.dart';
-import 'package:note_taker_app/screen/themes/app_theme.dart';
 import 'package:note_taker_app/view_model/auth_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -18,9 +17,37 @@ class _LoginScreenState extends State<LoginScreen> {
   TextEditingController lEmailController = TextEditingController();
   TextEditingController lPassController = TextEditingController();
 
+  Future<void> _handleLogin() async {
+    final notesProvider = context.read<NotesProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    bool success = await authProvider.login(
+      lEmailController.text,
+      lPassController.text,
+    );
+
+    if (!mounted) return; // It checks that is there is any changes in widget or not
+
+    if (success) {
+      await notesProvider.syncNotes(authProvider.currentUserId!);
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login failed!')),
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.read<AuthProvider>();
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -45,24 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                final success = authProvider.login(lEmailController.text, lPassController.text);
-                final notesProvider = Provider.of<NotesProvider>(context, listen: false);
-
-                if (authProvider.isLoggedIn) {
-                  notesProvider.syncNotes(authProvider.currentUserId!);
-                }
-
-                if (success) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Invalid email or password")),
-                  );
-                }
+              onPressed: () async {
+                await _handleLogin();
               },
               child: Text(
                 "Login",
